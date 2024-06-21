@@ -3,7 +3,7 @@
     두개 이상의 테이블에서 데이터를 조회하고자 할 때 사용하는 구문
     조회 결과는 하나의 결과들(RESULT SET)로 나옴
     
-    => 관계형 데이터베이스에서 SQL문을 이용하 테이블간의 '관계'를 맺는 방법
+    => 관계형 데이터베이스에서 SQL문을 이용한 테이블간의 '관계'를 맺는 방법
     
     JOIN은 크게 '오라클전용구문'과 "ANSI 구문"(ABSI==미국국립표준협회)
     
@@ -36,9 +36,9 @@
 */
 --1)연결한 컬럼명이 다른 경우(EMPLOYEE:DEPT_CODE,DEPARTMENT:DEPT_ID)
 --사번, 사원명, 부서코드, 부서명을 조회
-SELECT EMP_ID, EMP_NAME,DEPT_CODE, DEPT_TITLE
+SELECT EMP_ID, EMP_NAME, DEPT_CODE, DEPT_TITLE
  FROM EMPLOYEE, DEPARTMENT
-WHERE DEPT_CODE=DEPT_ID;
+WHERE DEPT_CODE = DEPT_ID;
 -- 일치하는 행이 없으면 조회에서 제외
 
 --2)연결할 컬럼명이 같은 경우(EMPLOYEE:JOB_CODE,JOB:JOB_CODE)
@@ -49,23 +49,23 @@ SELECT EMP_ID, EMP_NAME, EMPLOYEE.JOB_CODE,JOB_NAME
 WHERE EMPLOYEE.JOB_CODE=JOB.JOB_CODE;
 
 -- 테이블에 별칭을 이용해도 가능
-SELECT EMP_ID,EMP_NAME,E.JOB_CODE,JOB_NAME
+SELECT EMP_ID, EMP_NAME, E.JOB_CODE, JOB_NAME
  FROM EMPLOYEE E,JOB J
- WHERE E.JOB_CODE=J.JOB_CODE;
+ WHERE E.JOB_CODE = J.JOB_CODE;
  
  /*
     >>ANSL 구문
         -FROM절에 기준이 되는 테이블을 하나만 기술
         -JOIN절에 같이 조회하고자 하는 테이블 기술 + 매칭시킬 컬럼에 대한 기술
-        -JOIN USING,JOIN ON
+        -JOIN USING, JOIN ON
  */
- --1)연결한 컬러명이 다른 경우(EMPLOYEE: DEPT_CODE,DEPARTMENT:DEPT_ID)
+ --1)연결한 컬럼명이 다른 경우(EMPLOYEE: DEPT_CODE,DEPARTMENT:DEPT_ID)
  --     => 오로지 JOIN ON구문만 사용
  
  -- 사번, 사원명, 부서코드, 부서명을 조회
  SELECT EMP_ID, EMP_NAME, DEPT_CODE, DEPT_TITLE
   FROM EMPLOYEE
- JOIN department ON(DEPT_CODE = DEPT_ID);
+ JOIN DEPARTMENT ON(DEPT_CODE = DEPT_ID);
  
  --2)연결할 컬럼명이 같은 경우(EMPLOYEE:JOB_CODE,JOB:JOB_CODE)
  -- => JOIN ON과 JOIN USING 둘 다 사용가능
@@ -75,7 +75,7 @@ SELECT EMP_ID,EMP_NAME,E.JOB_CODE,JOB_NAME
   FROM EMPLOYEE
    JOIN JOB USING(JOB_CODE);
    --JOIN ON 사용
-   -- => 두 테이블의 컬럼명릉 모두 기술
+   -- => 두 테이블의 컬럼명을 모두 기술
  SELECT EMP_ID, EMP_NAME, E.JOB_CODE,JOB_NAME
  FROM EMPLOYEE E
   JOIN JOB J ON(E.JOB_CODE=J.JOB_CODE);
@@ -87,7 +87,6 @@ SELECT EMP_ID,EMP_NAME,E.JOB_CODE,JOB_NAME
     FROM EMPLOYEE E, JOB J
  WHERE E.JOB_CODE=J.JOB_CODE
     AND JOB_NAME='대리';
-    
     
 --  >> ANSL구문
  SELECT EMP_ID,EMP_NAME,JOB_NAME,SALARY

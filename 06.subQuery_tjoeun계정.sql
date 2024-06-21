@@ -195,3 +195,412 @@ WHERE JOB_NAME = '대리'
                               FROM EMPLOYEE
                                 JOIN JOB USING (JOB_CODE)
                             WHERE JOB_NAME = '과장');
+                            
+------------------------------------------------------------------
+/*
+    3.다중열 서브쿼리
+        : 결과값이 한행이고 컬럼수가 여러개 일 때
+ */    
+--1) 장정보 사원과 같은 직급코드에 해당하는 사원들의 사원명, 부서코드, 직급코드, 입사일 조회
+--  1.1 장정보 사원의 부서코드, 직급코드
+SELECT DEPT_CODE, JOB_CODE
+FROM EMPLOYEE
+WHERE EMP_NAME = '장정보';
+
+SELECT EMP_NAME, DEPT_CODE, JOB_CODE, HIRE_DATE
+ FROM EMPLOYEE
+WHERE DEPT_CODE = (SELECT DEPT_CODE
+                    FROM EMPLOYEE
+                    WHERE EMP_NAME = '장정보')
+    AND JOB_CODE = (SELECT JOB_CODE
+                    FROM EMPLOYEE
+                    WHERE EMP_NAME = '장정보');
+                    
+-- 다중열 서브쿼리
+SELECT EMP_NAME, DEPT_CODE, JOB_CODE, HIRE_DATE
+    FROM EMPLOYEE
+WHERE (DEPT_CODE, JOB_CODE)=(SELECT DEPT_CODE, JOB_CODE
+                            FROM EMPLOYEE
+                            WHERE EMP_NAME = '장정보');
+                            
+-- 지정보 사원과 같은 직급코드, 같은 사수를 가지고 있는 사원들의 사번, 사원명, 직급코드, 사수번호 조회
+SELECT EMP_ID, EMP_NAME, DEPT_CODE, MANAGER_ID
+ FROM EMPLOYEE
+WHERE(DEPT_CODE, MANAGER_ID) = (SELECT DEPT_CODE, MANAGER_ID
+                                                         FROM EMPLOYEE
+                                                        WHERE EMP_NAME='지정보');
+
+-------------------------------------------------------------------------------------
+/* 
+    4. 다중행 다중열 서브쿼리
+    : 결과값이 여러행이고 컬럼수가 여러개 일 때
+*/
+
+-- 1) 각 직급별 최소급여 금액을 받는 사원의 사번, 사원명, 직급코드, 급여 조회
+-- 1.1 각 직급별 최소급여
+SELECT JOB_CODE, MIN(SALARY)
+    FROM EMPLOYEE
+GROUP BY JOB_CODE;
+
+/*
+SELECT EMP_NO, EMP_NAME, JOB_CODE, SALARY
+    FROM EMPLOYEE
+GROUP BY JOB_CODE='J1'AND SALARY = 8000000
+    OR JOB_CODE='J2'AND SALARY = 3700000
+    ....
+    
+SELECT EMP_ID, EMP_NAME, JOB_CODE, SALARY
+    FROM EMPLOYEE
+WHERE(JOB_CODE, SALARY)=('J1',8000000)
+    OR(JOB_CODE_SALARY)=('J2',3700000)
+    ....
+ */   
+-- 서브쿼리
+SELECT EMP_ID, EMP_NAME, JOB_CODE, SALARY
+ FROM EMPLOYEE
+WHERE (JOB_CODE, SALARY) IN (SELECT JOB_CODE, MIN(SALARY)
+                                                FROM EMPLOYEE
+                                                GROUP BY JOB_CODE);
+                            
+--2)각 부서별 최고급여를 받는 사원들의 사번, 사원명, 부서코드, 급여조회
+SELECT EMP_ID, EMP_NAME, DEPT_CODE, SALARY
+    FROM EMPLOYEE
+WHERE(DEPT_CODE,SALARY)IN(SELECT DEPT_CODE,MAX(SALARY)
+                            FROM EMPLOYEE
+                            GROUP BY DEPT_CODE);
+                            
+===========================================================
+--인라인 뷰
+
+/*
+    인라인 뷰(INLINE VIEW)
+    :서브쿼리를 수행한 결과를 마치 테이블처럼 사용
+    FROM절에 서브쿼리 작성
+    
+    - 주로 사용하는 예 : TOP-N분석
+*/
+--1) 사원들의 사번, 이름, 보너스를 포함한 연봉, 부서코드 조회
+--   단, 보너스포함 연봉이 300만원이상인 사원들만 조회
+
+SELECT EMP_ID, EMP_NAME, (SALARY * NVL(1+BONUS,1))*12,DEPT_CODE
+FROM EMPLOYEE
+-- WHERE 연봉*12 >= 30000000;
+WHERE (SALARY * NVL(1+BONUS,1))*12 >= 30000000;
+
+--별칭을 사용하려면 INLINE VIEW 사용
+SELECT *
+FROM (SELECT EMP_ID, EMP_NAME, (SALARY * NVL(1+BONUS,1))*12 연봉, DEPT_CODE
+            FROM EMPLOYEE)
+WHERE 연봉 >= 30000000;
+
+SELECT EMP_ID, EMP_NAME, 연봉
+FROM (SELECT EMP_ID, EMP_NAME, (SALARY * NVL(1+BONUS,1))*12 연봉, DEPT_CODE
+            FROM EMPLOYEE)
+WHERE 연봉 >= 30000000;
+
+/*
+SELECT EMP_ID,EMP_NAME,연봉, HIRE_DATE
+FROM (SELECT EMP_ID,EMP_NAME,(SALARY*NVL(1+BONUS,1))*12 연봉, DEPT_CODE
+        FROM EMPLOYEE)
+WHERE 연봉 >= 30000000; --FROM절 뒤의 테이블에 HIRE_DATE라는 컬럼은 없다
+*/
+
+--TOP-N분석
+-- 전 직원중 급여가 가장 높은 상위 5명만 조회
+--*ROWNUM : 오라클에서 제공해주는 컬럼, 조회된 순서대로 1부터 순번을 부여
+
+SELECT ROWNUM,EMP_ID,EMP_NAME,SALARY
+FROM EMPLOYEE;
+
+SELECT ROWNUM, EMP_ID, EMP_NAME, SALARY
+FROM EMPLOYEE
+ORDER BY SALARY DESC; -- FROM -> SELECT -> ORDER
+
+SELECT ROWNUM, EMP_ID, EMP_NAME, SALARY
+FROM EMPLOYEE
+WHERE ROWNUM <= 10
+ORDER BY SALARY DESC;
+
+-- ORDER BY를 한후, ROWNUM을 붙여줘야 한다
+SELECT *
+FROM (SELECT EMP_ID, EMP_NAME, SALARY
+        FROM EMPLOYEE
+        ORDER BY SALARY DESC);
+        
+SELECT ROWNUM, EMP_ID,EMP_NAME, SALARY
+FROM (SELECT EMP_ID, EMP_NAME, SALARY
+        FROM EMPLOYEE
+        ORDER BY SALARY DESC)
+WHERE ROWNUM <=5;
+
+SELECT ROWNUM, *
+ FROM (SELECT EMP_ID, EMP_NAME, SALARY
+            FROM EMPLOYEE
+            ORDER BY SALARY DESC)
+WHERE ROWNUM <= 5;  -- 오류
+
+-- 테이블에 별칭을 부여하면 가능
+SELECT ROWNUM, E.*
+ FROM (SELECT EMP_ID, EMP_NAME, SALARY
+            FROM EMPLOYEE
+            ORDER BY SALARY DESC) E
+WHERE ROWNUM <= 5;
+
+-- 가장 최근에 입사함 사원 5명의 사원명, 급여, 입사일 조회
+--     2.1 입사일 기준 내림차순 정렬한 INLINE VIEW
+*SELECT *
+    FROM (SELECT EMP_NAME, SALARY, HIRE_DATE
+            FROM EMPLOYEE
+            ORDER BY HIRE_DATE DESC);
+     
+     -- 2.2       
+SELECT ROWNUM, EMP_NAME, SALARY, HIRE_DATE
+    FROM (SELECT *
+        FROM EMPLOYEE
+        ORDER BY HIRE_DATE DESC)
+WHERE ROWNUM <= 5;
+
+
+--3) 각 부서별 평균급여가 높은 3개 부서의 부서코드, 평균급여 조회
+SELECT *
+    FROM(SELECT DEPT_CODE,CEIL(AVG(SALARY))평균급여
+        FROM EMPLOYEE
+        GROUP BY DEPT_CODE
+        ORDER BY 평균급여 DESC)
+WHERE ROWNUM <= 3;
+
+-------------------------------------------------------------------
+/*
+    *WITH
+    :서브쿼리에 이름을 붙여주고 인라인 뷰로 사용시 서브쿼리의 이름으로 FROM절에 기술
+    
+    - 장점
+    같은 서브쿼리가 여러번 사용될 경우 중복 작성을 피할 수 있고, 실행속도가 빠르다
+*/
+WITH TOPN_SAL AS(SELECT DEPT_CODE,CEIL(AVG(SALARY))평균급여
+                    FROM EMPLOYEE
+                    GROUP BY DEPT_CODE
+                    ORDER BY 평균급여 DESC)
+                    
+SELECT *
+ FROM TOPN_SAL
+WHERE ROWNUM <= 3;
+
+--실행시 세미콜론이 붙으면(끝) 그 테이블 사용할 수 없음
+--UNION, MINUS 나 이런식으로 FROM절에 2번 쓸 때 가능
+SELECT *
+ FROM TOPN_SAL
+WHERE ROWNUM <= 3;
+
+--=======================================================================
+/*
+    *순위 매기는 함수(WINDOE FUNCTION)
+    RANK() OVER(정렬기준)|DENSE_RANK()OVER(정렬기준
+    -RANK() OVER(정렬기준) : 동일한 순위 이후의 동수를 동일한 인원 수 만큼 건너뛰고 순위 계산
+                            EX) 공공 1위가 2명이면 그 다음 순위느 3위
+    -DENSE_RANK() OVER(정렬기준) : 동일한 순위 이후 그 다음 등수를 무조건 1씩 증가시킴
+                        EX)공동1위가 2명이면 그 다음 순위는 2위
+    
+*/
+--급여가 높은 순서대로 순위 매겨서 사원명, 급여, 순위 조회
+SELECT EMP_NAME, SALARY, RANK() OVER(ORDER BY SALARY DESC) 순위
+    FROM EMPLOYEE;
+
+SELECT EMP_NAME, SALARY, RANK()OVER(ORDER BY SALARY DESC)순위
+    FROM EMPLOYEE;
+    
+SELECT EMP_NAME, SALARY, DENSE_RANK() OVER(ORDER BY SALARY DESC) 순위
+    FROM EMPLOYEE
+WHERE RANK() OVER(ORDER BY SALARY DESC)<=5; --오류
+--윈도우 함수는 WHERE절에서는 사용 못함. SELECT절에서만 사용가능
+
+-->> 인라인 뷰를 사용하면 됨
+SELECT *
+    FROM(SELECT EMP_NAME,SALARY,RANK()OVER(ORDER BY SALARY DESC) 순위
+            FROM EMPLOYEE)
+WHERE 순위 <= 5;
+
+-->>WITH와 같이 사용
+WITH TOPN_SALARY AS(SELECT EMP_NAME, SALARY,RANK()OVER(ORDER BY SALARY DESC) 순위
+                    FROM EMPLOYEE)
+
+SELECT *
+    FROM TOPN_SALARY
+WHERE 순위 <=5;
+
+-------------------------------- 연습문제 -------------------------------------
+-- 1. 2020년 12월 25일의 요일 조회
+SELECT TO_CHAR(TO_DATE('20201225','YYYYMMDD'),'DAY')
+    FROM DUAL;
+    
+-- 2. 70년대 생(1970~1979) 중 여자이면서 전씨인 사원의 사원명, 주민번호, 부서명, 직급명 조회   
+SELECT EMP_NAME, EMP_NO, DEPT_ID, JOB_NAME
+    FROM EMPLOYEE
+  JOIN DEPARTMENT ON (DEPT_CODE = DEPT_ID)
+    JOIN JOB USING (JOB_CODE)
+    WHERE SUBSTR(EMP_NO, 1, 2)>=70 AND SUBSTR(EMP_NO, 1,2)<=79
+        AND SUBSTR(EMP_NO, 8, 1)=2
+        AND EMP_NAME LIKE'%전%';
+ 
+ -- 오라클전용 구문
+ SELECT EMP_NAME, EMP_NO, DEPT_ID, JOB_NAME
+    FROM EMPLOYEE E, DEPARTMENT D, JOB J 
+ WHERE DEPT_CODE = DEPT_ID
+    AND E.JOB_CODE=J.JOB_CODE
+    AND SUBSTR(EMP_NO, 1, 2)>=70 AND SUBSTR(EMP_NO, 1, 2) <= 79
+    AND SUBSTR(EMP_NO, 8, 1) = 2
+    AND EMP_NAME LIKE '전%';
+    
+-- 3. 나이가 가장 막내의 사번, 사원명, 나이, 부서명, 직급명 조회
+SELECT EMP_ID, EMP_NAME, 
+     EXTRACT(YEAR FROM SYSDATE) - EXTRACT(YEAR FROM (TO_DATE(SUBSTR(EMP_NO,1,2), 'RR'))) AS 나이,
+           DEPT_TITLE, 
+           JOB_NAME
+ FROM EMPLOYEE
+   JOIN DEPARTMENT ON (DEPT_CODE = DEPT_ID)
+   JOIN JOB USING (JOB_CODE)
+WHERE EXTRACT(YEAR FROM SYSDATE) - EXTRACT(YEAR FROM (TO_DATE(SUBSTR(EMP_NO,1,2), 'RR'))) =
+           (SELECT MIN(EXTRACT(YEAR FROM SYSDATE) - EXTRACT(YEAR FROM (TO_DATE(SUBSTR(EMP_NO,1,2), 'RR')))) 
+             FROM EMPLOYEE);
+             
+--INLINE VIEW
+SELECT *
+ FROM (SELECT EMP_ID, EMP_NAME, 
+            EXTRACT(YEAR FROM SYSDATE) - EXTRACT(YEAR FROM (TO_DATE(SUBSTR(EMP_NO,1,2), 'RR'))) AS 나이,
+            DEPT_TITLE, 
+            JOB_NAME
+ FROM EMPLOYEE
+   JOIN DEPARTMENT ON (DEPT_CODE = DEPT_ID)
+   JOIN JOB USING (JOB_CODE)) E
+WHERE E.나이 =  (SELECT MIN(EXTRACT(YEAR FROM SYSDATE) - EXTRACT(YEAR FROM (TO_DATE(SUBSTR(EMP_NO,1,2), 'RR')))) 
+                           FROM EMPLOYEE);
+                           
+-- WITH 사용
+WITH E AS (SELECT EMP_ID, EMP_NAME, 
+                 EXTRACT(YEAR FROM SYSDATE) - EXTRACT(YEAR FROM (TO_DATE(SUBSTR(EMP_NO,1,2), 'RR'))) AS 나이,
+                DEPT_TITLE, 
+                JOB_NAME
+        FROM EMPLOYEE
+          JOIN DEPARTMENT ON (DEPT_CODE = DEPT_ID)
+          JOIN JOB USING (JOB_CODE))
+          
+SELECT *
+ FROM E
+WHERE 나이 = (SELECT MIN(나이) FROM E);
+
+-- 4. 이름에 ‘하’가 들어가는 사원의 사번, 사원명, 직급명 조회
+SELECT EMP_ID, EMP_NAME, JOB_NAME
+ FROM EMPLOYEE
+   JOIN JOB USING (JOB_CODE)
+WHERE EMP_NAME LIKE '%하%';   
+
+-- 5. 부서 코드가 D5이거나 D6인 사원의 사원명, 직급명, 부서코드, 부서명 조회
+SELECT EMP_NAME, JOB_NAME, DEPT_CODE, DEPT_TITLE
+ FROM EMPLOYEE
+   JOIN DEPARTMENT ON (DEPT_CODE=DEPT_ID)
+   JOIN JOB USING(JOB_CODE)
+WHERE DEPT_CODE IN ('D5','D6');   
+
+-- 6. 보너스를 받는 사원의 사원명, 보너스, 부서명, 지역명 조회
+SELECT EMP_NAME, BONUS, DEPT_TITLE, LOCAL_NAME
+ FROM EMPLOYEE
+   JOIN DEPARTMENT ON (DEPT_CODE = DEPT_ID)
+   JOIN LOCATION ON (LOCATION_ID = LOCAL_CODE)
+WHERE BONUS IS NOT NULL;
+   
+-- 7. 모든 사원의 사원명, 직급명, 부서명, 지역명 조회
+SELECT EMP_NAME, JOB_NAME, DEPT_TITLE, LOCAL_NAME
+ FROM EMPLOYEE
+   JOIN DEPARTMENT ON (DEPT_CODE = DEPT_ID)
+   JOIN JOB USING(JOB_CODE)
+   JOIN LOCATION ON (LOCATION_ID = LOCAL_CODE);
+   
+-- 8. 한국이나 일본에서 근무 중인 사원의 사원명, 부서명, 지역명, 국가명 조회 
+SELECT EMP_NAME, DEPT_TITLE, LOCAL_NAME, NATIONAL_NAME
+ FROM EMPLOYEE
+   JOIN DEPARTMENT ON (DEPT_CODE = DEPT_ID)
+   JOIN LOCATION ON (LOCATION_ID = LOCAL_CODE)
+   JOIN NATIONAL USING(NATIONAL_CODE)
+WHERE NATIONAL_NAME IN ('한국','일본');   
+
+-- 9. 하정연 사원과 같은 부서에서 일하는 사원의 사원명, 부서코드 조회
+SELECT EMP_NAME, DEPT_CODE
+ FROM EMPLOYEE
+WHERE DEPT_CODE = (SELECT DEPT_CODE
+                                    FROM EMPLOYEE
+                                  WHERE EMP_NAME = '하정연');
+
+-- 10. 보너스가 없고 직급 코드가 J4이거나 J7인 사원의 사원명, 직급명, 급여 조회
+SELECT EMP_NAME, JOB_NAME, SALARY
+ FROM EMPLOYEE
+  JOIN JOB USING(JOB_CODE)
+WHERE BONUS IS NULL
+    AND JOB_CODE IN ('J4', 'J7');
+  
+-- 11. 퇴사 하지 않은 사람과 퇴사한 사람의 수 조회
+SELECT COUNT(*)
+ FROM EMPLOYEE
+GROUP BY ENT_YN;
+
+-- 12. 보너스 포함한 연봉이 높은 5명의 사번, 사원명, 부서명, 직급명, 입사일, 순위 조회
+SELECT *
+ FROM (SELECT EMP_ID, EMP_NAME, DEPT_TITLE, JOB_NAME, HIRE_DATE, 
+                       RANK() OVER(ORDER BY(SALARY*NVL(1+BONUS,1)*12) DESC) 순위
+            FROM EMPLOYEE
+              JOIN DEPARTMENT ON (DEPT_CODE = DEPT_ID)
+              JOIN JOB USING(JOB_CODE))
+WHERE 순위 <= 5;
+
+-- 13. 부서 별 급여 합계가 전체 급여 총 합의 20%보다 많은 부서의 부서명, 부서별 급여 합계 조회
+--	13-1. JOIN과 HAVING 사용 
+SELECT DEPT_TITLE, SUM(SALARY)
+ FROM EMPLOYEE
+   JOIN DEPARTMENT ON (DEPT_CODE = DEPT_ID)
+GROUP BY DEPT_TITLE
+HAVING SUM(SALARY) > (SELECT SUM(SALARY)*0.2
+                                       FROM EMPLOYEE);
+   
+--	13-2. 인라인 뷰 사용  
+SELECT *
+ FROM (SELECT DEPT_TITLE, SUM(SALARY) "부서별 합"
+            FROM EMPLOYEE
+             JOIN DEPARTMENT ON (DEPT_CODE = DEPT_ID)
+            GROUP BY DEPT_TITLE)
+WHERE "부서별 합" > (SELECT SUM(SALARY)*0.2
+                                       FROM EMPLOYEE);   
+                                       
+--	13-3. WITH 사용
+WITH TOTAL_SAL AS (SELECT DEPT_TITLE, SUM(SALARY) "부서별 합"
+            FROM EMPLOYEE
+             JOIN DEPARTMENT ON (DEPT_CODE = DEPT_ID)
+            GROUP BY DEPT_TITLE)
+            
+SELECT *
+ FROM TOTAL_SAL
+WHERE "부서별 합" > (SELECT SUM(SALARY)*0.2
+                                       FROM EMPLOYEE);
+                                       
+-- 14. 부서명별 급여 합계 조회(NULL도 조회되도록)
+-- ANSI 구문
+SELECT DEPT_TITLE, SUM(SALARY)
+FROM EMPLOYEE
+LEFT JOIN DEPARTMENT ON (DEPT_CODE = DEPT_ID)
+GROUP BY DEPT_TITLE;
+
+-- 오라클전용 구문
+SELECT DEPT_TITLE, SUM(SALARY)
+FROM EMPLOYEE, DEPARTMENT
+WHERE DEPT_CODE = DEPT_ID(+)
+GROUP BY DEPT_TITLE;
+
+-- 15. WITH를 이용하여 급여합과 급여평균 조회
+WITH SUM_SAL AS (SELECT SUM(SALARY) FROM EMPLOYEE),
+         AVG_SAL AS (SELECT CEIL(AVG(SALARY)) FROM EMPLOYEE)
+
+/*
+SELECT * FROM SUM_SAL
+UNION
+SELECT * FROM AVG_SAL;
+*/
+SELECT *
+ FROM SUM_SAL, AVG_SAL;

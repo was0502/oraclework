@@ -121,7 +121,21 @@ SELECT DEPT_CODE, JOB_CODE, SUM(SALARY)
     - UNION ALL:합집합 + 교집합(중복된 값은 2번 표현될 수 있다)
     - MINUS:차집합(선행결과값에서 후행결과값을 뺀 나머지)
 */
----------------------------------1.UNION-----------------------------------
+---------------------------------- 1. UNION ---------------------------------
+--부서코드가 D5인사원 또는 급여가 300만원 초과인 사원들 조회
+SELECT EMP_NAME, DEPT_CODE, SALARY
+ FROM EMPLOYEE
+WHERE DEPT_CODE = 'D5'
+UNION
+SELECT EMP_NAME, DEPT_CODE, SALARY
+ FROM EMPLOYEE
+WHERE SALARY > 3000000;
+
+-- OR
+SELECT EMP_NAME, DEPT_CODE, SALARY
+ FROM EMPLOYEE
+WHERE DEPT_CODE = 'D5' OR SALARY > 3000000;
+---------------------------------2. INTERSECT -----------------------------------
 -- 부서코드가 D5인사원 또는 급여가 300만원 초과인 사원들 조회
 SELECT EMP_NAME, DEPT_CODE,SALARY
  FROM EMPLOYEE
@@ -136,7 +150,7 @@ INTERSECT
   FROM EMPLOYEE
  WHERE DEPT_CODE='D5'AND SALARY>300000;
  
- ---------------------3.UNION---------------------------
+ ---------------------3.UNION ALL---------------------------
  --부서코드가 D5인사원 또는 급여가 300만원 초과인 사원들 조회(중복은 중복된 갯수만큼 조회)
 SELECT EMP_NAME, DEPT_CODE, SALARY
  FROM EMPLOYEE
